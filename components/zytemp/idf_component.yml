@@ -1,0 +1,4 @@
+description: Holtek USB-zyTemp CO2/temperature sensor over the ESP32-S2/S3 USB host port
+dependencies:
+  idf: ">=5.3"
+  espressif/usb_host_hid: "^1.2.1"

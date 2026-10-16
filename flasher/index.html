@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Air Monitor · Install</title>
+<style>
+:root {
+  --bg:#FAFAFA; --text:#1C1B1F; --muted:#6B6B70; --faint:#A0A0A5; --line:#E2E2E5;
+  --accent:#FF6F3F; --accent-tx:#fff; --error:#C62828; --field:#FFFFFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#1C1B1F; --text:#E6E1E5; --muted:#A3A0A8; --faint:#6C6971; --line:#2F2E34;
+          --accent:#D96A3E; --error:#F2726D; --field:#212024; }
+}
+* { box-sizing:border-box; }
+html, body { margin:0; }
+body { min-height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--text);
+       font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing:antialiased; }
+a { color:var(--accent); text-decoration:none; }
+.wrap { width:100%; max-width:760px; margin:0 auto; padding:0 32px; }
+@media (max-width:640px) { .wrap { padding:0 20px; } }
+header { border-bottom:1px solid var(--line); }
+header .wrap { display:flex; align-items:center; height:56px; }
+header .name { font-weight:600; }
+h1 { font-size:26px; font-weight:600; margin:40px 0 6px; letter-spacing:-.02em; }
+.lead { color:var(--muted); margin:0 0 28px; font-size:16px; }
+.lab { font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin:34px 0 10px; }
+ol, ul { margin:0; padding-left:22px; }
+li { margin:6px 0; }
+li::marker { color:var(--muted); }
+code { font:13px ui-monospace, SFMono-Regular, Menlo, monospace; background:var(--field); border:1px solid var(--line); border-radius:4px; padding:1px 6px; }
+pre { font:13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background:var(--field); border:1px solid var(--line); border-radius:4px; padding:12px 14px; overflow-x:auto; margin:10px 0 0; }
+.install { margin:18px 0 6px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.note { font-size:13.5px; color:var(--muted); }
+.btn { font:inherit; font-size:15px; font-weight:500; padding:11px 22px; border-radius:4px; border:1px solid var(--accent);
+       background:var(--accent); color:var(--accent-tx); cursor:pointer; }
+.btn:hover { filter:brightness(.95); }
+.warn { color:var(--error); font-size:14px; }
+hr { border:0; border-top:1px solid var(--line); margin:34px 0 0; }
+footer { border-top:1px solid var(--line); margin-top:auto; padding:18px 0 28px; font-size:12.5px; color:var(--faint); text-align:center; }
+</style>
+<script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
+</head>
+<body>
+<header><div class="wrap"><span class="name">Air Monitor</span></div></header>
+
+<main class="wrap">
+  <h1>Install the firmware</h1>
+  <p class="lead">One button, no tools. The device then sets itself up from your phone.</p>
+
+  <div class="lab">You need</div>
+  <ul>
+    <li>An ESP32-S3 board with two USB-C ports, such as the ESP32-S3-DevKitC-1. 4 MB of flash is enough.</li>
+    <li>A Holtek USB-zyTemp CO₂ sensor, the one inside the TFA AirCO2ntrol Mini and similar meters.</li>
+    <li>On the DevKitC-1, the <b>USB-OTG</b> solder jumper must be closed so the USB port powers the sensor. Boards with a USB power switch work out of the box.</li>
+    <li>Chrome or Edge on a computer. Firefox and Safari cannot talk to serial ports.</li>
+  </ul>
+
+  <div class="lab">Install</div>
+  <ol>
+    <li>Connect the board's <b>COM</b> port (the one next to the UART chip, not the USB-OTG port) to the computer.</li>
+    <li>Press the button, pick the serial port in the dialog, confirm. A fresh board takes about a minute.</li>
+  </ol>
+  <div class="install">
+    <esp-web-install-button manifest="manifest.json">
+      <button class="btn" slot="activate">Install Air Monitor</button>
+      <span class="warn" slot="unsupported">This browser cannot access serial ports. Use Chrome or Edge, or flash with esptool below.</span>
+      <span class="warn" slot="not-allowed">Serial access needs HTTPS. Open this page over https://.</span>
+    </esp-web-install-button>
+    <span class="note">Reinstalling keeps your settings and history unless you choose "erase".</span>
+  </div>
+
+  <div class="lab">Then</div>
+  <ol>
+    <li>Plug the sensor into the board's <b>USB</b> port. Power the board from the COM port.</li>
+    <li>On your phone, join the Wi-Fi network <code>AirMonitor-XXXX</code>. The setup page opens by itself; if not, open <code>http://192.168.4.1/</code>.</li>
+    <li>Pick your home Wi-Fi, enter the password, save. The device restarts and is reachable at <code>http://airmonitor-xxxx.local/</code> or at the address your router gave it.</li>
+  </ol>
+
+  <div class="lab">If the port does not show up</div>
+  <ul>
+    <li>Windows may need the CH9102 or CP210x driver from the chip vendor; macOS and Linux have them built in.</li>
+    <li>Use a data cable, not a charge-only one.</li>
+    <li>Close other programs that may hold the port, such as a serial monitor.</li>
+  </ul>
+
+  <div class="lab">Without a browser</div>
+  <p class="note">The same image, <a href="airmonitor.bin">airmonitor.bin</a>, flashed with <a href="https://docs.espressif.com/projects/esptool/">esptool</a>:</p>
+  <pre>esptool --chip esp32s3 -p PORT -b 115200 write-flash 0x0 airmonitor.bin</pre>
+  <p class="note">Or with Espressif Flash Download Tool on Windows: chip ESP32-S3, file <code>airmonitor.bin</code> at address <code>0x0</code>, SPI mode DIO.</p>
+</main>
+
+<footer>Air Monitor · <a href="https://github.com/GrakovNe/esp_32_holtek-usb-zy-temp-driver">source</a> · MIT License</footer>
+</body>
+</html>

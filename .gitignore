@@ -1,0 +1,12 @@
+build*/
+build.log
+managed_components/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+.vscode/
+.idea/
+*.pyc
+test/host/test_appconf
+test/host/test_history_ring
+test/host/*.dSYM/

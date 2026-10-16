@@ -1,0 +1,13 @@
+{
+  "name": "Air Monitor",
+  "version": "__VERSION__",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "airmonitor.bin", "offset": 0 }
+      ]
+    }
+  ]
+}

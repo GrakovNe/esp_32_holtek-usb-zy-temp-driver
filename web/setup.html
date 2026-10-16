@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Air Monitor · Settings</title>
+<style>
+:root {
+  --bg:#FAFAFA; --text:#1C1B1F; --muted:#6B6B70; --faint:#A0A0A5; --line:#E2E2E5; --line2:#EEEEF0;
+  --accent:#FF6F3F; --accent-tx:#fff; --error:#C62828; --ok:#3F9E5B; --field:#FFFFFF; --hover:#F1F1F3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#1C1B1F; --text:#E6E1E5; --muted:#A3A0A8; --faint:#6C6971; --line:#2F2E34; --line2:#28272C;
+    --accent:#D96A3E; --error:#F2726D; --ok:#5BBF78; --field:#212024; --hover:#26252A;
+  }
+}
+* { box-sizing:border-box; }
+html, body { margin:0; }
+body { min-height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--text);
+       font:15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+       -webkit-font-smoothing:antialiased; }
+body.dirty footer { padding-bottom:92px; }
+a { color:inherit; text-decoration:none; }
+.num { font-variant-numeric:tabular-nums; }
+.wrap { width:100%; max-width:1040px; margin:0 auto; padding:0 32px; }
+@media (max-width:640px) { .wrap { padding:0 20px; } }
+svg.i { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+
+header { border-bottom:1px solid var(--line); }
+header .wrap { display:flex; align-items:center; height:56px; gap:28px; }
+header .name { font-weight:600; font-size:15px; flex:1; letter-spacing:-.01em; }
+nav { display:flex; gap:22px; height:100%; }
+nav a { display:flex; align-items:center; font-size:14px; color:var(--muted); border-bottom:2px solid transparent; margin-bottom:-1px; }
+nav a.on { color:var(--text); border-bottom-color:var(--accent); }
+
+.title { padding:30px 0 6px; }
+.title h1 { font-size:22px; font-weight:600; margin:0; letter-spacing:-.015em; }
+.title p { margin:8px 0 0; color:var(--muted); max-width:620px; }
+
+.sec { padding:26px 0 34px; border-bottom:1px solid var(--line); }
+.sec:last-of-type { border-bottom:0; padding-bottom:36px; }
+@media (max-width:640px) { .sec { padding:22px 0 28px; } }
+.lab { font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); }
+.lab.err { color:var(--error); }
+.fields { max-width:600px; margin-top:16px; }
+
+.f { margin-top:18px; }
+.f:first-child { margin-top:0; }
+label.l { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+label.l .r { float:right; }
+label.l .r a { color:var(--accent); font-size:12.5px; cursor:pointer; }
+input[type=text], input[type=password], input[type=number], textarea {
+  width:100%; font:inherit; font-size:15px; color:var(--text); background:var(--field); border:1px solid var(--line);
+  border-radius:4px; padding:9px 11px; outline:none; transition:border-color .15s; }
+input:focus, textarea:focus { border-color:var(--text); }
+textarea { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12.5px; min-height:110px; resize:vertical; }
+.hint { font-size:12.5px; color:var(--muted); margin-top:6px; min-height:17px; }
+.hint.ok { color:var(--ok); }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+.row2.h { grid-template-columns:1fr 120px; }
+@media (max-width:480px) { .row2 { grid-template-columns:1fr; } .row2.h { grid-template-columns:1fr 120px; } }
+.pw { position:relative; }
+.pw input { padding-right:40px; }
+.pw button { position:absolute; right:4px; top:50%; transform:translateY(-50%); width:32px; height:32px; border:0; background:none; color:var(--muted); cursor:pointer; display:grid; place-items:center; }
+
+.chks { display:flex; flex-direction:column; gap:12px; }
+.chk { display:flex; align-items:center; gap:12px; cursor:pointer; font-size:15px; width:fit-content; -webkit-user-select:none; user-select:none; }
+.chk.sub { margin-left:30px; }
+.chk input { appearance:none; width:18px; height:18px; margin:0; border:1.5px solid var(--muted); border-radius:3px; background:transparent; flex:none; cursor:pointer; position:relative; transition:background .12s, border-color .12s; }
+.chk:hover input:not(:disabled) { border-color:var(--text); }
+.chk input:checked { background:var(--text); border-color:var(--text); }
+.chk input:checked::after { content:""; position:absolute; left:5px; top:1.5px; width:5px; height:9px; border:solid var(--bg); border-width:0 2px 2px 0; transform:rotate(45deg); }
+.chk input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.chk input:disabled { opacity:.4; cursor:default; }
+.chk input:disabled + span { color:var(--muted); }
+.dim { opacity:.45; pointer-events:none; }
+
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font:inherit; font-size:14px; font-weight:500; padding:9px 16px;
+       border-radius:4px; border:1px solid var(--line); background:transparent; color:var(--text); cursor:pointer; }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-tx); }
+.btn.text { border-color:transparent; color:var(--muted); padding-left:8px; padding-right:8px; }
+.btn.danger { color:var(--error); border-color:var(--error); }
+.btn.danger.solid { background:var(--error); color:#fff; }
+.btn:disabled { opacity:.5; cursor:default; }
+.btn svg.i { width:16px; height:16px; }
+
+.nets { border-top:1px solid var(--line); margin-top:10px; }
+.net { display:grid; grid-template-columns:22px 1fr auto auto; align-items:center; gap:14px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer; }
+.net:hover { background:var(--hover); }
+.net .radio { width:16px; height:16px; border-radius:50%; border:1.5px solid var(--muted); position:relative; }
+.net.sel .radio { border-color:var(--text); }
+.net.sel .radio::after { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--text); }
+.net .ssid { font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.net .ssid small { color:var(--muted); margin-left:8px; font-size:13px; }
+.net .rssi { font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.net .meta { display:flex; align-items:center; gap:10px; color:var(--muted); }
+.bars { display:inline-flex; align-items:flex-end; gap:2px; height:13px; }
+.bars i { width:3px; background:var(--line); }
+.bars i:nth-child(1) { height:4px; } .bars i:nth-child(2) { height:7px; } .bars i:nth-child(3) { height:10px; } .bars i:nth-child(4) { height:13px; }
+.bars[data-n="1"] i:nth-child(-n+1), .bars[data-n="2"] i:nth-child(-n+2), .bars[data-n="3"] i:nth-child(-n+3), .bars[data-n="4"] i:nth-child(-n+4) { background:var(--text); }
+.listhead { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--muted); }
+.spin { width:12px; height:12px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; display:inline-block; vertical-align:-2px; margin-right:6px; }
+@keyframes spin { to { transform:rotate(360deg) } }
+
+.acts { display:flex; align-items:center; justify-content:flex-end; gap:14px; flex-wrap:wrap; }
+.confirm { display:none; align-items:center; gap:14px; font-size:14px; color:var(--muted); }
+.confirm.show { display:flex; }
+
+.savebar { position:fixed; left:0; right:0; bottom:0; z-index:8; background:var(--bg); border-top:1px solid var(--line);
+           transform:translateY(110%); transition:transform .2s ease; }
+.savebar.show { transform:none; }
+.savebar .wrap { display:flex; align-items:center; gap:14px; min-height:64px; padding-top:8px; padding-bottom:8px; }
+.savebar .n { flex:1; font-size:14px; color:var(--muted); }
+.savebar .n b { color:var(--text); font-weight:500; }
+.savebar .n.err { color:var(--error); }
+@media (max-width:640px) { .savebar .n span { display:none; } }
+
+.restart { display:none; padding:80px 0; text-align:center; }
+.restart.show { display:block; }
+.restart h2 { font-size:22px; font-weight:600; margin:22px 0 8px; }
+.restart p { color:var(--muted); margin:0 0 6px; }
+.restart .url { display:inline-block; margin:16px 0 8px; font-size:18px; font-weight:600; color:var(--accent); }
+.restart small { color:var(--faint); font-size:13px; }
+.ring { width:36px; height:36px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--accent); animation:spin 1s linear infinite; margin:0 auto; }
+
+footer { border-top:1px solid var(--line); margin-top:auto; padding:18px 0 28px; font-size:12.5px; color:var(--faint); }
+footer .l { text-align:center; }
+footer .l + .l { margin-top:4px; }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="name">Air Monitor</div>
+  <nav id="nav"><a href="/main">Dashboard</a><a class="on" href="/config">Settings</a><a href="/info">Device Info</a></nav>
+</div></header>
+
+<main class="wrap" id="page">
+  <div class="title">
+    <h1 id="h1">Settings</h1>
+    <p id="intro" style="display:none">Pick your Wi-Fi network and save.</p>
+  </div>
+
+  <section class="sec">
+    <div class="lab">Wi-Fi</div>
+    <div class="fields">
+      <div class="listhead"><span id="scantext"><span class="spin"></span>Scanning…</span>
+        <button class="btn text" id="rescan" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Rescan</button></div>
+      <div class="nets" id="nets"></div>
+      <div class="f">
+        <label class="l" for="ssid">Hidden network</label>
+        <input type="text" id="ssid" maxlength="32" autocomplete="off" placeholder="Exact network name">
+      </div>
+      <div class="f" id="passwrap">
+        <label class="l" for="pass">Password for <b id="passfor">the selected network</b></label>
+        <div class="pw"><input type="password" id="pass" maxlength="64" autocomplete="off">
+          <button type="button" data-eye="pass" aria-label="Show password"><svg class="i" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+        <div class="hint" id="passhint"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="lab">MQTT</div>
+    <div class="fields">
+      <div class="chks">
+        <label class="chk"><input type="checkbox" id="mq_en"><span>Enabled</span></label>
+        <label class="chk"><input type="checkbox" id="mq_disc"><span>Home Assistant Discovery</span></label>
+        <label class="chk"><input type="checkbox" id="mq_tls"><span>Use TLS</span></label>
+        <label class="chk sub"><input type="checkbox" id="mq_skip"><span>Skip certificate verification</span></label>
+      </div>
+      <div id="mqbody" style="margin-top:22px">
+        <div class="f row2 h">
+          <div><label class="l" for="mq_host">Broker host</label><input type="text" id="mq_host" maxlength="64" autocomplete="off"></div>
+          <div><label class="l" for="mq_port">Port</label><input type="number" id="mq_port" min="1" max="65535"></div>
+        </div>
+        <div class="f row2">
+          <div><label class="l" for="mq_user">Username</label><input type="text" id="mq_user" maxlength="32" autocomplete="off"></div>
+          <div><label class="l" for="mq_pass">Password</label>
+            <div class="pw"><input type="password" id="mq_pass" maxlength="64" autocomplete="off">
+              <button type="button" data-eye="mq_pass" aria-label="Show password"><svg class="i" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div class="hint" id="mqpasshint"></div></div>
+        </div>
+        <div class="f" id="cawrap">
+          <label class="l" for="mq_ca">CA certificate (PEM) <span class="r"><a id="cadel">Remove saved</a></span></label>
+          <textarea id="mq_ca" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----"></textarea>
+          <div class="hint" id="mqcahint">Empty means the built-in CA bundle.</div>
+        </div>
+        <div class="f row2">
+          <div><label class="l" for="mq_t_co2">CO₂ topic <span class="r"><a data-def="mq_t_co2">default</a></span></label><input type="text" id="mq_t_co2" maxlength="96" autocomplete="off"></div>
+          <div><label class="l" for="mq_t_temp">Temperature topic <span class="r"><a data-def="mq_t_temp">default</a></span></label><input type="text" id="mq_t_temp" maxlength="96" autocomplete="off"></div>
+        </div>
+        <div class="f row2 h">
+          <div><label class="l" for="mq_int">Publish interval, seconds</label><input type="number" id="mq_int" min="5" max="3600"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="lab">Device</div>
+    <div class="fields">
+      <div class="f">
+        <label class="l" for="name">Device name</label>
+        <input type="text" id="name" maxlength="32" autocomplete="off">
+        <div class="hint">Reachable at <b id="hostprev"></b></div>
+      </div>
+      <div class="f">
+        <label class="l" for="ntp">NTP server <span class="r"><a data-def="ntp">default</a></span></label>
+        <input type="text" id="ntp" maxlength="64" autocomplete="off">
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="lab">Restart</div>
+    <div class="fields">
+      <div class="acts">
+        <button class="btn" type="button" id="reboot">Restart Device</button>
+        <div class="confirm" id="rebootc"><span>Restart now?</span><button class="btn" type="button" id="rebootok">Restart</button><button class="btn text" type="button" data-cancel="rebootc">Cancel</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="lab err">Factory reset</div>
+    <div class="fields">
+      <div class="acts">
+        <button class="btn danger" type="button" id="freset">Reset Device</button>
+        <div class="confirm" id="resetc"><span>This cannot be undone.</span><button class="btn danger solid" type="button" id="resetok">Erase and restart</button><button class="btn text" type="button" data-cancel="resetc">Cancel</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="wrap restart" id="restart">
+  <div class="ring"></div>
+  <h2 id="rtitle">Restarting</h2>
+  <p id="rtext"></p>
+  <a class="url" id="rurl" href="#"></a><br>
+  <small id="rsmall"></small>
+</div>
+
+<footer id="foot"><div class="wrap">
+  <div class="l"><span id="fw">Air Monitor</span></div>
+  <div class="l">© 2026 Max Grakov, Saint Petersburg · MIT License</div>
+</div></footer>
+
+<div class="savebar" id="savebar"><div class="wrap">
+  <span class="n" id="savemsg"><b id="nchanges"></b><span> · the device restarts to apply them</span></span>
+  <button class="btn text" type="button" id="discard">Discard</button>
+  <button class="btn primary" type="button" id="save">Save and restart</button>
+</div></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const DEF_NTP = "pool.ntp.org";
+
+let deviceId = "";
+let savedSsid = "";
+let selectedSsid = "";
+let selectedSecure = true;
+let nets = [];
+let wifiPassDirty = false;
+let mqttPassDirty = false;
+let caDirty = false;
+const dirty = new Set();
+
+/* Mirrors appconf_hostname() in the firmware. */
+function hostname(name) {
+  const h = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return h || "airmonitor-" + deviceId;
+}
+
+function markDirty(k) {
+  dirty.add(k);
+  $("nchanges").textContent = dirty.size + (dirty.size === 1 ? " change" : " changes");
+  $("savemsg").className = "n";
+  $("savebar").classList.add("show");
+  document.body.classList.add("dirty");
+}
+document.querySelectorAll("main input, main textarea").forEach(el => {
+  el.addEventListener("input", () => markDirty(el.id));
+  el.addEventListener("change", () => markDirty(el.id));
+});
+$("discard").onclick = () => location.reload();
+
+const barsN = r => r > -55 ? 4 : r > -67 ? 3 : r > -80 ? 2 : 1;
+const LOCK = '<svg class="i" viewBox="0 0 24 24" style="width:15px;height:15px"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function scan(refresh) {
+  $("scantext").innerHTML = '<span class="spin"></span>Scanning…';
+  $("rescan").disabled = true;
+  try {
+    const r = await fetch("/api/v1/wifi/scan" + (refresh ? "?refresh=1" : ""));
+    const j = await r.json();
+    if (j.scanning) { setTimeout(() => scan(false), 1500); return; }
+    nets = j.networks || [];
+    renderNets();
+  } catch (e) {
+    $("scantext").textContent = "Scan failed";
+  }
+  $("rescan").disabled = false;
+}
+
+function renderNets() {
+  const list = nets.slice();
+
+  if (savedSsid && !list.some(n => n.ssid === savedSsid)) {
+    list.unshift({ ssid: savedSsid, rssi: null, secure: true });
+  }
+  const box = $("nets");
+  box.innerHTML = "";
+  for (const n of list) {
+    const div = document.createElement("div");
+    div.className = "net" + (n.ssid === selectedSsid ? " sel" : "");
+    div.innerHTML = '<span class="radio"></span><span class="ssid">' + esc(n.ssid) +
+      (n.ssid === savedSsid ? "<small>current</small>" : "") + '</span><span class="rssi">' +
+      (n.rssi != null ? n.rssi + " dBm" : "") + '</span><span class="meta">' +
+      (n.secure ? LOCK : '<span style="width:15px"></span>') +
+      (n.rssi != null ? '<span class="bars" data-n="' + barsN(n.rssi) + '"><i></i><i></i><i></i><i></i></span>' : "") + "</span>";
+    div.onclick = () => pick(n.ssid, n.secure);
+    box.appendChild(div);
+  }
+  $("scantext").textContent = nets.length + " networks · " + new Date().toTimeString().slice(0, 5);
+}
+
+function pick(ssid, secure) {
+  selectedSsid = ssid;
+  selectedSecure = secure;
+  $("ssid").value = "";
+  renderNets();
+  $("passwrap").style.display = secure ? "" : "none";
+  $("passfor").textContent = ssid;
+  if (ssid !== savedSsid) {
+    wifiPassDirty = true; /* a new network always gets the password as typed, empty for open */
+    $("pass").value = "";
+    $("passhint").textContent = "";
+    $("passhint").className = "hint";
+    markDirty("wifi");
+  }
+}
+
+$("ssid").addEventListener("input", () => {
+  const v = $("ssid").value;
+  if (!v) return;
+  selectedSsid = v;
+  selectedSecure = true;
+  wifiPassDirty = true;
+  renderNets();
+  $("passwrap").style.display = "";
+  $("passfor").textContent = v;
+  $("passhint").textContent = "";
+  $("passhint").className = "hint";
+});
+$("pass").addEventListener("input", () => { wifiPassDirty = true; });
+$("rescan").onclick = () => scan(true);
+
+function syncChecks() {
+  const en = $("mq_en").checked, tls = $("mq_tls").checked;
+  $("mq_disc").disabled = !en;
+  $("mq_tls").disabled = !en;
+  $("mq_skip").disabled = !en || !tls;
+  $("mqbody").classList.toggle("dim", !en);
+  $("cawrap").style.display = en && tls ? "" : "none";
+}
+$("mq_en").addEventListener("change", syncChecks);
+$("mq_tls").addEventListener("change", () => {
+
+  const p = $("mq_port");
+  if ($("mq_tls").checked && p.value === "1883") p.value = "8883";
+  if (!$("mq_tls").checked && p.value === "8883") p.value = "1883";
+  syncChecks();
+});
+$("mq_pass").addEventListener("input", () => { mqttPassDirty = true; });
+$("mq_ca").addEventListener("input", () => { caDirty = true; });
+$("cadel").onclick = () => {
+  $("mq_ca").value = "";
+  caDirty = true;
+  $("mqcahint").textContent = "The saved certificate will be removed.";
+  $("mqcahint").className = "hint";
+  markDirty("ca");
+};
+
+document.querySelectorAll("[data-eye]").forEach(b => b.onclick = () => {
+  const i = $(b.dataset.eye);
+  i.type = i.type === "password" ? "text" : "password";
+});
+document.querySelectorAll("[data-def]").forEach(a => a.onclick = () => {
+  const id = a.dataset.def;
+  const defs = { mq_t_co2: "airmonitor/" + deviceId + "/co2", mq_t_temp: "airmonitor/" + deviceId + "/temperature", ntp: DEF_NTP };
+  $(id).value = defs[id];
+  markDirty(id);
+});
+$("name").addEventListener("input", () => { $("hostprev").textContent = "http://" + hostname($("name").value) + ".local/"; });
+
+let countdown;
+function showRestart(title, text, url, small, go) {
+  $("page").style.display = "none";
+  $("foot").style.display = "none";
+  $("savebar").classList.remove("show");
+  document.body.classList.remove("dirty");
+  $("restart").classList.add("show");
+  $("rtitle").textContent = title;
+  $("rtext").innerHTML = text;
+  $("rurl").textContent = url;
+  $("rurl").href = url;
+  clearInterval(countdown);
+  if (!go) { $("rsmall").textContent = small; return; }
+  let n = 15;
+  const tick = () => {
+    $("rsmall").textContent = "Opening automatically in " + n + " s. If the name does not resolve, use the IP from your router.";
+    if (n-- <= 0) { clearInterval(countdown); location.href = url; }
+  };
+  tick();
+  countdown = setInterval(tick, 1000);
+}
+
+$("reboot").onclick = () => { $("rebootc").classList.add("show"); $("reboot").style.display = "none"; };
+$("freset").onclick = () => { $("resetc").classList.add("show"); $("freset").style.display = "none"; };
+document.querySelectorAll("[data-cancel]").forEach(b => b.onclick = () => {
+  $(b.dataset.cancel).classList.remove("show");
+  $("reboot").style.display = "";
+  $("freset").style.display = "";
+});
+$("rebootok").onclick = async () => {
+  $("rebootok").disabled = true;
+  try { await fetch("/api/v1/reboot", { method: "POST" }); } catch (e) {}
+  showRestart("Restarting", "Settings are kept. In a few seconds the device answers at", location.origin + "/", "", true);
+};
+$("resetok").onclick = async () => {
+  $("resetok").disabled = true;
+  try { await fetch("/api/v1/factory-reset", { method: "POST" }); } catch (e) {}
+  const ap = "AirMonitor-" + deviceId.toUpperCase();
+  showRestart("Settings erased", "The device restarts as the open Wi-Fi network <b>" + esc(ap) + "</b>. Join it and open",
+              "http://192.168.4.1/", "The setup page opens by itself on most phones.", false);
+};
+
+$("save").onclick = async () => {
+  const body = {
+    device: { name: $("name").value },
+    wifi: { ssid: selectedSsid },
+    time: { ntp_server: $("ntp").value },
+    mqtt: {
+      enabled: $("mq_en").checked,
+      host: $("mq_host").value,
+      port: Number($("mq_port").value || 1883),
+      username: $("mq_user").value,
+      tls: $("mq_tls").checked,
+      skip_verify: $("mq_skip").checked,
+      co2_topic: $("mq_t_co2").value,
+      temperature_topic: $("mq_t_temp").value,
+      interval_s: Number($("mq_int").value || 30),
+      discovery: $("mq_disc").checked
+    }
+  };
+
+  if (wifiPassDirty) body.wifi.password = selectedSecure ? $("pass").value : "";
+  if (mqttPassDirty) body.mqtt.password = $("mq_pass").value;
+  if (caDirty) body.mqtt.ca_cert = $("mq_ca").value;
+
+  $("save").disabled = true;
+  $("savemsg").className = "n";
+  $("nchanges").textContent = "Saving…";
+  const url = "http://" + hostname($("name").value) + ".local/";
+  try {
+    const r = await fetch("/api/v1/config", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const j = await r.json();
+    if (!r.ok) {
+      $("nchanges").textContent = j.error || "Save failed.";
+      $("savemsg").className = "n err";
+      $("save").disabled = false;
+      return;
+    }
+    showRestart("Restarting", "Joining <b>" + esc(selectedSsid || "Wi-Fi") + "</b>. In a few seconds the device answers at", j.url || url, "", true);
+  } catch (e) {
+
+    showRestart("Restarting", "In a few seconds the device answers at", url, "", true);
+  }
+};
+
+function fill(j) {
+  if (j.device && j.device.name) $("name").value = j.device.name;
+  $("hostprev").textContent = "http://" + hostname($("name").value) + ".local/";
+  if (j.wifi) {
+    savedSsid = j.wifi.ssid || "";
+    selectedSsid = savedSsid;
+    $("passfor").textContent = savedSsid || "the selected network";
+    if (j.wifi.password_set) { $("passhint").textContent = "Saved · leave empty to keep"; $("passhint").className = "hint ok"; }
+  }
+  if (j.time) $("ntp").value = j.time.ntp_server || DEF_NTP;
+  const m = j.mqtt;
+  if (m) {
+    $("mq_en").checked = !!m.enabled;
+    $("mq_host").value = m.host || "";
+    $("mq_port").value = m.port || 1883;
+    $("mq_user").value = m.username || "";
+    if (m.password_set) { $("mqpasshint").textContent = "Saved · leave empty to keep"; $("mqpasshint").className = "hint ok"; }
+    $("mq_tls").checked = !!m.tls;
+    $("mq_skip").checked = !!m.skip_verify;
+    if (m.ca_cert_set) { $("mqcahint").textContent = "A certificate is saved · leave empty to keep"; $("mqcahint").className = "hint ok"; }
+    $("mq_t_co2").value = m.co2_topic || "";
+    $("mq_t_temp").value = m.temperature_topic || "";
+    $("mq_int").value = m.interval_s || 30;
+    $("mq_disc").checked = !!m.discovery;
+  }
+  syncChecks();
+}
+
+(async function init() {
+  try {
+    const r = await fetch("/api/v1/status");
+    const j = await r.json();
+    deviceId = j.device.id;
+    $("fw").textContent = "Firmware " + j.device.firmware + " · ESP-IDF " + j.device.idf;
+    if (j.mode === "provisioning") {
+
+      $("h1").textContent = "Set up Air Monitor";
+      $("intro").style.display = "";
+      $("nav").style.display = "none";
+    }
+  } catch (e) {}
+  try {
+    const r = await fetch("/api/v1/config");
+    fill(await r.json());
+  } catch (e) { syncChecks(); }
+  scan(true);
+})();
+</script>
+</body>
+</html>

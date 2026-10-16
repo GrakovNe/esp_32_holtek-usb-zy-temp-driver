@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Air Monitor · Device Info</title>
+<style>
+:root {
+  --bg:#FAFAFA; --text:#1C1B1F; --muted:#6B6B70; --faint:#A0A0A5; --line:#E2E2E5; --line2:#EEEEF0;
+  --accent:#FF6F3F; --error:#C62828; --ok:#3F9E5B;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#1C1B1F; --text:#E6E1E5; --muted:#A3A0A8; --faint:#6C6971; --line:#2F2E34; --line2:#28272C;
+    --accent:#D96A3E; --error:#F2726D; --ok:#5BBF78;
+  }
+}
+* { box-sizing:border-box; }
+html, body { margin:0; }
+body { min-height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--text);
+       font:15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+       -webkit-font-smoothing:antialiased; }
+a { color:inherit; text-decoration:none; }
+.wrap { width:100%; max-width:1040px; margin:0 auto; padding:0 32px; }
+@media (max-width:640px) { .wrap { padding:0 20px; } }
+header { border-bottom:1px solid var(--line); }
+header .wrap { display:flex; align-items:center; height:56px; gap:28px; }
+header .name { font-weight:600; font-size:15px; flex:1; letter-spacing:-.01em; }
+nav { display:flex; gap:22px; height:100%; }
+nav a { display:flex; align-items:center; font-size:14px; color:var(--muted); border-bottom:2px solid transparent; margin-bottom:-1px; }
+nav a.on { color:var(--text); border-bottom-color:var(--accent); }
+.lab { font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); }
+
+.sec { display:grid; grid-template-columns:240px 1fr; gap:0 48px; padding:30px 0; border-bottom:1px solid var(--line); }
+.sec:last-of-type { border-bottom:0; padding-bottom:36px; }
+@media (max-width:860px) { .sec { grid-template-columns:1fr; gap:14px 0; padding:24px 0; } }
+.state { margin-top:10px; font-size:13px; display:flex; align-items:center; gap:7px; color:var(--muted); white-space:nowrap; }
+.state::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--faint); flex:none; }
+.state.ok::before { background:var(--ok); }
+.state.err { color:var(--error); } .state.err::before { background:var(--error); }
+.tbl { max-width:600px; font-size:14px; }
+.tbl div { display:flex; justify-content:space-between; gap:16px; padding:9px 0; border-bottom:1px solid var(--line2); }
+.tbl div:last-child { border-bottom:0; }
+.tbl span:first-child { color:var(--muted); }
+.tbl span:last-child { font-variant-numeric:tabular-nums; text-align:right; }
+
+footer { border-top:1px solid var(--line); margin-top:auto; padding:18px 0 28px; font-size:12.5px; color:var(--faint); }
+footer .l { text-align:center; }
+footer .l + .l { margin-top:4px; }
+footer .err { color:var(--error); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="name">Air Monitor</div>
+  <nav><a href="/main">Dashboard</a><a href="/config">Settings</a><a class="on" href="/info">Device Info</a></nav>
+</div></header>
+
+<main class="wrap">
+  <section class="sec">
+    <div><div class="lab">Sensor</div><div class="state" id="s-sensor">—</div></div>
+    <div class="tbl">
+      <div><span>Model</span><span>Holtek USB-zyTemp</span></div>
+      <div><span>CO₂</span><span id="v-co2">—</span></div>
+      <div><span>Temperature</span><span id="v-temp">—</span></div>
+      <div><span>Frames</span><span id="v-frames">—</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div><div class="lab">Wi-Fi</div><div class="state" id="s-wifi">—</div></div>
+    <div class="tbl">
+      <div><span>Network</span><span id="v-ssid">—</span></div>
+      <div><span>Signal</span><span id="v-rssi">—</span></div>
+      <div><span>Channel</span><span id="v-chan">—</span></div>
+      <div><span>IP address</span><span id="v-ip">—</span></div>
+      <div><span>Gateway</span><span id="v-gw">—</span></div>
+      <div><span>Hostname</span><span id="v-host">—</span></div>
+      <div><span>MAC</span><span id="v-mac">—</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div><div class="lab">MQTT</div><div class="state" id="s-mqtt">—</div></div>
+    <div class="tbl">
+      <div><span>Broker</span><span id="v-broker">—</span></div>
+      <div><span>Last publish</span><span id="v-pub">—</span></div>
+      <div><span>Errors</span><span id="v-err">—</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div><div class="lab">Time</div><div class="state" id="s-time">—</div></div>
+    <div class="tbl">
+      <div><span>NTP server</span><span id="v-ntp">—</span></div>
+      <div><span>Device time</span><span id="v-now">—</span></div>
+      <div><span>Uptime</span><span id="v-up">—</span></div>
+      <div><span>Last reset</span><span id="v-reset">—</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div><div class="lab">Hardware</div></div>
+    <div class="tbl">
+      <div><span>Chip</span><span id="v-chip">—</span></div>
+      <div><span>Flash</span><span id="v-flash">—</span></div>
+      <div><span>PSRAM</span><span id="v-psram">—</span></div>
+      <div><span>Free heap</span><span id="v-heap">—</span></div>
+      <div><span>Chip temperature</span><span id="v-ctemp">—</span></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div><div class="lab">Firmware</div></div>
+    <div class="tbl">
+      <div><span>Version</span><span id="v-fw">—</span></div>
+      <div><span>ESP-IDF</span><span id="v-idf">—</span></div>
+      <div><span>Built</span><span id="v-built">—</span></div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <div class="l"><span id="upd">Connecting…</span><span id="fw"></span></div>
+  <div class="l">© 2026 Max Grakov, Saint Petersburg · MIT License</div>
+</div></footer>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const set = (id, v) => { $(id).textContent = v == null || v === "" ? "—" : v; };
+const state = (id, ok, text) => { $(id).className = "state " + (ok ? "ok" : "err"); $(id).textContent = text; };
+const mb = b => (b / 1048576).toFixed(b >= 10485760 ? 0 : 1) + " MB";
+const ago = s => s < 60 ? s + " s ago" : s < 3600 ? Math.floor(s / 60) + " min ago" : Math.floor(s / 3600) + " h ago";
+function uptime(s) {
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return d ? d + " d " + h + " h" : h ? h + " h " + m + " min" : m + " min";
+}
+const RESET = { power_on: "Power on", software: "Software restart", panic: "Panic", watchdog: "Watchdog",
+                brownout: "Brownout", deep_sleep: "Deep sleep", external: "External pin" };
+
+function render(j) {
+  const s = j.sensor, w = j.wifi, m = j.mqtt, t = j.time, d = j.device;
+  state("s-sensor", s.connected, s.connected ? (s.warming_up ? "Warming up" : "Operating") : "Not connected");
+  set("v-co2", s.co2_ppm != null ? s.co2_ppm + " ppm · " + ago(s.co2_age_s) : null);
+  set("v-temp", s.temperature_c != null ? s.temperature_c.toFixed(2) + " °C · " + ago(s.temperature_age_s) : null);
+  set("v-frames", s.frames_valid + " ok · " + s.frames_bad + " bad");
+
+  state("s-wifi", w.connected, w.connected ? "Connected" : (j.mode === "provisioning" ? "Not configured" : "No connection"));
+  set("v-ssid", w.ssid);
+  set("v-rssi", w.rssi != null ? w.rssi + " dBm" : null);
+  set("v-chan", w.channel != null ? w.channel + (w.bssid ? " · BSSID " + w.bssid : "") : null);
+  set("v-ip", w.ip);
+  set("v-gw", w.gateway);
+  set("v-host", d.hostname + ".local");
+  set("v-mac", d.mac);
+
+  state("s-mqtt", !m.enabled || m.connected, !m.enabled ? "Off" : m.connected ? "Connected" : "Disconnected");
+  $("s-mqtt").className = "state" + (!m.enabled ? "" : m.connected ? " ok" : " err");
+  set("v-pub", m.last_publish && t.timestamp ? ago(Math.max(0, t.timestamp - m.last_publish)) : null);
+  set("v-err", m.errors);
+
+  state("s-time", t.synced, t.synced ? "Synced" : "Not synced");
+  if (t.timestamp) {
+    const dt = new Date(t.timestamp * 1000);
+    set("v-now", dt.getFullYear() + "-" + pad(dt.getMonth() + 1) + "-" + pad(dt.getDate()) + " " + dt.toTimeString().slice(0, 8));
+  } else set("v-now", null);
+  set("v-up", uptime(t.uptime_s));
+  set("v-reset", RESET[d.reset_reason] || d.reset_reason);
+
+  set("v-chip", d.chip + " rev " + d.revision + " · " + d.cores + " × " + d.cpu_mhz + " MHz");
+  set("v-flash", d.flash_bytes != null ? mb(d.flash_bytes) : null);
+  set("v-psram", d.psram_bytes ? mb(d.psram_bytes) : "none");
+  set("v-heap", mb(d.heap_free) + " · lowest " + mb(d.heap_min_free));
+  set("v-ctemp", d.chip_temperature_c != null ? d.chip_temperature_c.toFixed(1) + " °C" : null);
+
+  set("v-fw", d.firmware);
+  set("v-idf", d.idf);
+  set("v-built", d.build_date);
+  $("fw").textContent = " · Firmware " + d.firmware + " · ESP-IDF " + d.idf;
+  document.title = d.name + " · Device Info";
+
+  const when = t.timestamp ? new Date(t.timestamp * 1000) : new Date();
+  $("upd").textContent = "Updated " + when.toTimeString().slice(0, 8);
+  $("upd").className = "";
+}
+
+async function loadStatus() {
+  try {
+    const r = await fetch("/api/v1/status");
+    render(await r.json());
+  } catch (e) {
+    $("upd").textContent = "Device not reachable";
+    $("upd").className = "err";
+  }
+}
+
+async function loadConfig() {
+  try {
+    const r = await fetch("/api/v1/config");
+    const j = await r.json();
+    if (j.mqtt) set("v-broker", j.mqtt.host ? j.mqtt.host + " : " + j.mqtt.port : null);
+    if (j.time) set("v-ntp", j.time.ntp_server);
+  } catch (e) {  }
+}
+
+loadStatus();
+loadConfig();
+setInterval(loadStatus, 5000);
+</script>
+</body>
+</html>

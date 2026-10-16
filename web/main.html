@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Air Monitor</title>
+<style>
+:root {
+  --bg:#FAFAFA; --text:#1C1B1F; --muted:#6B6B70; --faint:#A0A0A5; --line:#E2E2E5; --line2:#EEEEF0;
+  --accent:#FF6F3F; --error:#C62828;
+  --good:#3F9E5B; --warn:#E0A100; --bad:#D64545; --cold:#4A7FD4; --none:#C4C4C8; --track:#E6E6E9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#1C1B1F; --text:#E6E1E5; --muted:#A3A0A8; --faint:#6C6971; --line:#2F2E34; --line2:#28272C;
+    --accent:#D96A3E; --error:#F2726D;
+    --good:#5BBF78; --warn:#F0C24C; --bad:#F27B7B; --cold:#7FA6F0; --none:#55535A; --track:#2A292E;
+  }
+}
+* { box-sizing:border-box; }
+html, body { margin:0; }
+body { min-height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--text);
+       font:15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+       -webkit-font-smoothing:antialiased; }
+a { color:inherit; text-decoration:none; }
+.num { font-variant-numeric:tabular-nums; }
+.wrap { width:100%; max-width:1040px; margin:0 auto; padding:0 32px; }
+@media (max-width:640px) { .wrap { padding:0 20px; } }
+
+header { border-bottom:1px solid var(--line); }
+header .wrap { display:flex; align-items:center; height:56px; gap:28px; }
+header .name { font-weight:600; font-size:15px; flex:1; letter-spacing:-.01em; }
+nav { display:flex; gap:22px; height:100%; }
+nav a { display:flex; align-items:center; font-size:14px; color:var(--muted); border-bottom:2px solid transparent; margin-bottom:-1px; }
+nav a.on { color:var(--text); border-bottom-color:var(--accent); }
+
+.lab { font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); }
+
+.readings { display:grid; grid-template-columns:1fr 1fr; gap:0 48px; padding:36px 0 32px; border-bottom:1px solid var(--line); }
+.readings > div + div { border-left:1px solid var(--line); padding-left:48px; }
+@media (max-width:760px) {
+  .readings { grid-template-columns:1fr; gap:28px 0; padding:28px 0 24px; }
+  .readings > div + div { border-left:0; padding-left:0; }
+}
+.v { display:flex; align-items:baseline; gap:12px; margin-top:10px; }
+.big { font-size:104px; font-weight:500; line-height:.95; letter-spacing:-.05em; }
+.unit { font-size:22px; color:var(--muted); }
+@media (max-width:640px) { .big { font-size:88px; } }
+.d { font-size:14px; color:var(--muted); margin-top:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-height:20px; }
+.d.err { color:var(--error); }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--none); flex:none; }
+.dot.good { background:var(--good); } .dot.warn { background:var(--warn); } .dot.bad { background:var(--bad); } .dot.cold { background:var(--cold); }
+.track { position:relative; height:3px; background:var(--track); margin-top:18px; }
+.track .fill { position:absolute; left:0; top:0; bottom:0; background:var(--none); transition:width .4s ease; }
+.track .fill.good { background:var(--good); } .track .fill.warn { background:var(--warn); }
+.track .fill.bad { background:var(--bad); } .track .fill.cold { background:var(--cold); }
+.track .tick { position:absolute; top:-3px; width:1px; height:9px; background:var(--faint); }
+.ticks { position:relative; height:14px; font-size:11px; color:var(--faint); margin-top:6px; }
+.ticks span { position:absolute; transform:translateX(-50%); }
+
+.chart-sec { padding:28px 0 36px; }
+.chart-block { margin-top:18px; }
+.chart-block + .chart-block { margin-top:28px; border-top:1px solid var(--line2); padding-top:22px; }
+.sub { font-size:13px; color:var(--muted); }
+.chart-wrap { position:relative; margin-top:8px; }
+svg.chart { width:100%; height:190px; display:block; touch-action:pan-y; }
+@media (max-width:640px) { svg.chart { height:160px; } }
+/* Chrome applies CSS width/height to SVG rects: no shared class names with sized elements. */
+svg .bar { opacity:.9; } svg .bar.hi { opacity:1; }
+svg .bar.good { fill:var(--good); } svg .bar.warn { fill:var(--warn); } svg .bar.bad { fill:var(--bad); } svg .bar.cold { fill:var(--cold); }
+svg .base { stroke:var(--line); stroke-width:1; }
+svg .zone { stroke:var(--faint); stroke-width:1; stroke-dasharray:2 4; opacity:.6; }
+svg text { fill:var(--faint); font-size:11px; font-variant-numeric:tabular-nums; }
+svg .cursor { stroke:var(--text); stroke-width:1; opacity:.4; }
+.tip { position:absolute; top:0; pointer-events:none; display:none; font-size:12.5px; color:var(--text); background:var(--bg); padding:0 6px; white-space:nowrap; transform:translateX(-50%); }
+.tip b { font-weight:600; }
+.stats { font-size:13px; color:var(--muted); display:flex; gap:20px; margin-top:6px; min-height:19px; }
+.stats b { color:var(--text); font-weight:500; }
+
+footer { border-top:1px solid var(--line); margin-top:auto; padding:18px 0 28px; font-size:12.5px; color:var(--faint); }
+footer .l { text-align:center; }
+footer .l + .l { margin-top:4px; }
+footer .err { color:var(--error); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="name">Air Monitor</div>
+  <nav><a class="on" href="/main">Dashboard</a><a href="/config">Settings</a><a href="/info">Device Info</a></nav>
+</div></header>
+
+<main class="wrap">
+  <section class="readings">
+    <div>
+      <div class="lab">CO₂</div>
+      <div class="v"><span class="big num" id="co2">—</span><span class="unit">ppm</span></div>
+      <div class="d" id="co2d"></div>
+      <div class="track"><div class="fill" id="co2fill" style="width:0"></div><div class="tick" style="left:37.5%"></div><div class="tick" style="left:62.5%"></div></div>
+      <div class="ticks"><span style="left:0;transform:none">400</span><span style="left:37.5%">1000</span><span style="left:62.5%">1400</span><span style="left:100%;transform:translateX(-100%)">2000</span></div>
+    </div>
+    <div>
+      <div class="lab">Temperature</div>
+      <div class="v"><span class="big num" id="temp">—</span><span class="unit">°C</span></div>
+      <div class="d" id="tempd"></div>
+      <div class="track"><div class="fill" id="tempfill" style="width:0"></div><div class="tick" style="left:32%"></div><div class="tick" style="left:40%"></div><div class="tick" style="left:56%"></div><div class="tick" style="left:64%"></div></div>
+      <div class="ticks"><span style="left:0;transform:none">10</span><span style="left:32%">18</span><span style="left:40%">20</span><span style="left:56%">24</span><span style="left:64%">26</span><span style="left:100%;transform:translateX(-100%)">35</span></div>
+    </div>
+  </section>
+
+  <section class="chart-sec">
+    <div class="lab">Last 24 hours</div>
+    <div class="chart-block">
+      <div class="sub">CO₂</div>
+      <div class="chart-wrap"><svg class="chart" id="chart-co2"></svg><div class="tip" id="tip-co2"></div></div>
+      <div class="stats" id="stats-co2"></div>
+    </div>
+    <div class="chart-block">
+      <div class="sub">Temperature</div>
+      <div class="chart-wrap"><svg class="chart" id="chart-temp"></svg><div class="tip" id="tip-temp"></div></div>
+      <div class="stats" id="stats-temp"></div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <div class="l"><span id="upd">Connecting…</span><span id="fw"></span></div>
+  <div class="l">© 2026 Max Grakov, Saint Petersburg · MIT License</div>
+</div></footer>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* CO2 zones per GOST 30494-2011. */
+function co2Zone(p) { return p < 1000 ? "good" : p <= 1400 ? "warn" : "bad"; }
+function tempZone(c) { return c < 18 ? "cold" : c < 20 ? "warn" : c <= 24 ? "good" : c <= 26 ? "warn" : "bad"; }
+const WORD = { good: "OK", warn: "Moderate", bad: "Warning", cold: "Warning" };
+
+let records = [];
+let last = null;
+let unreachable = false;
+
+const pad = n => String(n).padStart(2, "0");
+const hhmm = t => { const d = new Date(t * 1000); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+const desc = parts => parts.map(p => "<span>" + p + "</span>").join("<span>·</span>");
+const ago = s => s + " s ago";
+
+function renderReading(id, value, zoneFn, fmt, lo, span, age, problem) {
+  const d = $(id + "d"), fill = $(id + "fill");
+  if (value != null) {
+    const z = zoneFn(value);
+    $(id).textContent = fmt(value);
+    d.className = "d";
+    d.innerHTML = '<span class="dot ' + z + '"></span>' + desc([WORD[z], ago(age)]);
+    fill.className = "fill " + z;
+    fill.style.width = Math.max(0, Math.min(100, (value - lo) / span * 100)) + "%";
+  } else {
+    $(id).textContent = "—";
+    d.className = "d" + (problem.err ? " err" : "");
+    d.innerHTML = '<span class="dot"></span>' + desc(problem.text);
+    fill.className = "fill";
+    fill.style.width = "0";
+  }
+}
+
+function renderCurrent(j) {
+  if (!j || !j.sensor) return;
+  last = j;
+  const sensorText = !j.sensor.connected ? { err: true, text: ["No data", "sensor not connected"] }
+                   : j.sensor.warming_up ? { err: false, text: ["Warming up"] }
+                   : { err: false, text: ["No data"] };
+  renderReading("co2", j.co2 ? j.co2.ppm : null, co2Zone, v => String(v), 400, 1600,
+                j.co2 ? j.co2.age_s : 0, sensorText);
+  renderReading("temp", j.temperature ? j.temperature.celsius : null, tempZone, v => v.toFixed(1), 10, 25,
+                j.temperature ? j.temperature.age_s : 0,
+                j.sensor.connected ? { err: false, text: ["No data"] } : sensorText);
+  renderFooter();
+}
+
+function renderFooter() {
+  const el = $("upd");
+  if (unreachable) {
+    el.textContent = "Device not reachable";
+    el.className = "err";
+    return;
+  }
+  const when = last && last.timestamp ? new Date(last.timestamp * 1000) : new Date();
+  let t = "Updated " + when.toTimeString().slice(0, 8);
+  if (last && !last.time_synced) t += " · clock not synced";
+  el.textContent = t;
+  el.className = "";
+}
+
+async function loadCurrent() {
+  try {
+    const r = await fetch("/api/v1/current");
+    const j = await r.json();
+    unreachable = false;
+    renderCurrent(j);
+  } catch (e) {
+    unreachable = true;
+    renderFooter();
+  }
+}
+
+async function loadHistory() {
+  try {
+    const r = await fetch("/api/v1/history");
+    const j = await r.json();
+    records = j.records || [];
+    drawCharts();
+  } catch (e) {  }
+}
+
+async function loadStatus() {
+  try {
+    const r = await fetch("/api/v1/status");
+    const j = await r.json();
+    if (j.device) {
+      document.title = j.device.name;
+      $("fw").textContent = " · Firmware " + j.device.firmware + " · ESP-IDF " + j.device.idf;
+    }
+  } catch (e) {  }
+}
+
+const HIST = {};
+function drawChart(metric) {
+  const svg = $("chart-" + metric), stats = $("stats-" + metric);
+  const now = Date.now() / 1000, start = Math.floor(now / 1800) * 1800 - 47 * 1800;
+  const slots = new Array(48).fill(null);
+  for (const r of records) {
+    const v = metric === "co2" ? r.co2 : r.temperature;
+    if (v == null) continue;
+    const i = Math.floor((r.t - start) / 1800);
+    if (i < 0 || i >= 48) continue;
+    if (!slots[i]) slots[i] = { sum: 0, n: 0 };
+    slots[i].sum += v; slots[i].n++;
+  }
+  const vals = slots.filter(x => x).map(x => x.sum / x.n);
+  if (!vals.length) { svg.innerHTML = ""; stats.textContent = "No history yet"; HIST[metric] = null; return; }
+  const box = svg.getBoundingClientRect();
+  const W = Math.round(box.width) || 800, H = Math.round(box.height) || 190;
+  const top = 14, bottom = 28, right = 40, pw = W - right, ph = H - top - bottom;
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  let lo, hi;
+  if (metric === "co2") { lo = 400; hi = Math.max(Math.ceil(Math.max(...vals) / 200) * 200, 1600); }
+  else { lo = Math.floor(Math.min(...vals) - 1); hi = Math.ceil(Math.max(...vals) + 1); }
+  const y = v => top + (1 - (v - lo) / (hi - lo)) * ph, bw = pw / 48;
+  let out = "";
+  const zones = metric === "co2" ? [1000, 1400] : [18, 20, 24, 26];
+  for (const z of zones) {
+    if (z > lo && z < hi) {
+      out += '<line class="zone" x1="0" x2="' + pw + '" y1="' + y(z) + '" y2="' + y(z) + '"/>' +
+             '<text x="' + (pw + 10) + '" y="' + (y(z) + 4) + '">' + z + "</text>";
+    }
+  }
+  for (let i = 0; i < 48; i++) {
+    if (!slots[i]) continue;
+    const avg = slots[i].sum / slots[i].n, h = Math.max(2, y(lo) - y(avg));
+    out += '<rect class="bar ' + (metric === "co2" ? co2Zone(avg) : tempZone(avg)) + '" data-i="' + i +
+           '" x="' + (i * bw + 2) + '" y="' + (y(lo) - h) + '" width="' + (bw - 4) + '" height="' + h + '"/>';
+  }
+  out += '<line class="base" x1="0" x2="' + pw + '" y1="' + (y(lo) + .5) + '" y2="' + (y(lo) + .5) + '"/>';
+  for (let i = 0; i < 48; i++) {
+    const d = new Date((start + i * 1800) * 1000);
+    if (d.getMinutes() === 0 && d.getHours() % 6 === 0 && i * bw < pw - 84) {
+      out += '<text x="' + (i * bw + 2) + '" y="' + (H - 8) + '">' + pad(d.getHours()) + ":00</text>";
+    }
+  }
+  out += '<text x="' + (pw - 24) + '" y="' + (H - 8) + '">now</text>';
+  out += '<line class="cursor" y1="' + top + '" y2="' + y(lo) + '" style="display:none"/>';
+  svg.innerHTML = out;
+  HIST[metric] = { start, slots, pw, bw };
+  const f = v => metric === "co2" ? Math.round(v) : v.toFixed(1), u = metric === "co2" ? " ppm" : " °C";
+  const mn = Math.min(...vals), mx = Math.max(...vals), av = vals.reduce((a, b) => a + b, 0) / vals.length;
+  stats.innerHTML = "<span>min <b>" + f(mn) + "</b></span><span>avg <b>" + f(av) + "</b></span><span>max <b>" + f(mx) + u + "</b></span>";
+}
+function drawCharts() { drawChart("co2"); drawChart("temp"); }
+
+function tooltip(metric) {
+  const svg = $("chart-" + metric), tip = $("tip-" + metric);
+  function at(x0) {
+    const h = HIST[metric];
+    if (!h) return;
+    const r = svg.getBoundingClientRect();
+    const i = Math.max(0, Math.min(47, Math.floor((x0 - r.left) / h.pw * 48))), sl = h.slots[i];
+    svg.querySelectorAll(".bar").forEach(b => b.classList.toggle("hi", b.dataset.i == i));
+    const c = svg.querySelector(".cursor");
+    if (!sl || !c) { tip.style.display = "none"; if (c) c.style.display = "none"; return; }
+    const x = (i + .5) * h.bw;
+    c.setAttribute("x1", x); c.setAttribute("x2", x); c.style.display = "";
+    const v = sl.sum / sl.n, t = h.start + i * 1800;
+    tip.innerHTML = hhmm(t) + "–" + hhmm(t + 1800) + " · <b>" + (metric === "co2" ? Math.round(v) + " ppm" : v.toFixed(1) + " °C") + "</b>";
+    tip.style.display = "block";
+    tip.style.left = Math.max(70, Math.min(h.pw - 70, x)) + "px";
+  }
+  const hide = () => {
+    tip.style.display = "none";
+    const c = svg.querySelector(".cursor");
+    if (c) c.style.display = "none";
+    svg.querySelectorAll(".bar").forEach(b => b.classList.remove("hi"));
+  };
+  svg.addEventListener("mousemove", e => at(e.clientX));
+  svg.addEventListener("mouseleave", hide);
+  svg.addEventListener("touchstart", e => at(e.touches[0].clientX), { passive: true });
+  svg.addEventListener("touchmove", e => at(e.touches[0].clientX), { passive: true });
+  svg.addEventListener("touchend", hide);
+}
+tooltip("co2");
+tooltip("temp");
+
+window.addEventListener("resize", drawCharts);
+loadCurrent();
+loadHistory();
+loadStatus();
+setInterval(loadCurrent, 5000);
+setInterval(loadHistory, 180000);
+setInterval(loadStatus, 300000);
+</script>
+</body>
+</html>

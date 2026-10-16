@@ -1,0 +1,12 @@
+menu "AirMonitor"
+
+    config APP_SELFTEST
+        bool "Run HTTP self-test at boot (development only)"
+        default n
+        help
+            Drives the device's own HTTP API over the lwIP loopback
+            interface and logs SELFTEST PASS/FAIL lines on the console.
+            Some phases save settings and reboot (see main/CMakeLists.txt
+            for the APP_SELFTEST_* phase switches). Never ship this.
+
+endmenu
